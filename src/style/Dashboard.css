@@ -1,0 +1,132 @@
+/* src/pages/Dashboard.css */
+
+/* --- Main Container & Background Effects --- */
+.dashboard-container {
+  min-height: 100vh;
+  background-color: #020617; /* slate-950 */
+  background-image: radial-gradient(circle at top right, #1e293b, transparent 40%),
+                    radial-gradient(circle at bottom left, #334155, transparent 50%);
+  position: relative;
+  overflow: hidden;
+  color: #f8fafc; /* slate-50 */
+}
+
+.dashboard-nav {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  backdrop-filter: blur(4px);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5); /* border-slate-700/50 */
+}
+
+.nav-button {
+    color: #94a3b8; /* slate-400 */
+}
+.nav-button:hover {
+    color: white;
+    background-color: rgba(30, 41, 59, 0.5); /* bg-slate-800/50 */
+}
+
+
+/* Animated shapes */
+.bg-shape1, .bg-shape2, .bg-shape3 {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(64px);
+  animation: pulse 8s infinite ease-in-out;
+}
+.bg-shape1 { top: 5rem; right: 5rem; width: 18rem; height: 18rem; background-color: rgba(51, 65, 85, 0.1); }
+.bg-shape2 { bottom: 5rem; left: 5rem; width: 20rem; height: 20rem; background-color: rgba(71, 85, 105, 0.1); animation-delay: 2s; }
+.bg-shape3 { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 24rem; height: 24rem; background-color: rgba(100, 116, 139, 0.05); animation-delay: 1s; }
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+/* Grid pattern overlay */
+.grid-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0);
+  background-size: 40px 40px;
+}
+
+
+/* --- THE GRID LAYOUT --- */
+.parent {
+  position: relative;
+  z-index: 10;
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto repeat(6, 1fr); /* auto for header, rest equal */
+  gap: 1.25rem;
+  height: calc(100vh - 81px); /* Full viewport height minus nav */
+}
+
+/* Grid cell definitions */
+.div1 { grid-column: 1 / 5; }
+.div2 { grid-column: 1 / 2; grid-row: 2 / 4; }
+.div3 { grid-column: 2 / 3; grid-row: 2 / 4; }
+.div4 { grid-column: 3 / 4; grid-row: 2 / 4; }
+.div5 { grid-column: 4 / 5; grid-row: 2 / 4; }
+.div6 { grid-column: 1 / 5; grid-row: 4 / 5; }
+.div7 { grid-column: 1 / 4; grid-row: 5 / 7; }
+.div8 { grid-column: 4 / 5; grid-row: 5 / 7; }
+.div9 { grid-column: 1 / 2; grid-row: 7 / 8; }
+.div10 { grid-column: 2 / 3; grid-row: 7 / 8; }
+.div11 { grid-column: 3 / 4; grid-row: 7 / 8; }
+.div12 { grid-column: 4 / 5; grid-row: 7 / 8; }
+
+/* --- Component Styling & Fit --- */
+
+/* This rule ensures child elements (like Cards) fill their grid area */
+.parent > div > * {
+  width: 100%;
+  height: 100%;
+}
+
+.dashboard-card {
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(30, 41, 59, 0.5); /* bg-slate-800/50 */
+  border-color: rgba(51, 65, 85, 0.5); /* border-slate-700/50 */
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+.dashboard-card:hover {
+  border-color: #475569; /* border-slate-600 */
+  transform: translateY(-4px);
+}
+
+.card-title {
+  color: #cbd5e1; /* slate-200 */
+}
+
+.dashboard-alert {
+  display: flex;
+  align-items: center;
+  background-color: rgba(30, 41, 59, 0.5);
+  border-color: #475569;
+}
+
+.quick-action-button {
+  width: 100%;
+  height: 100%;
+  background-color: #334155; /* bg-slate-700 */
+  justify-content: flex-start;
+  padding-left: 1.5rem;
+  gap: 0.75rem;
+  font-size: 1rem;
+}
+.quick-action-button:hover {
+  background-color: #475569; /* bg-slate-600 */
+}
+.quick-action-button span {
+  font-size: 1.25rem;
+}

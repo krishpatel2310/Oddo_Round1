@@ -1,12 +1,12 @@
-const Transaction = require('../models/Transaction');
+import Transaction from "../models/Transaction.js";
 
 // @desc    Add new transaction
 // @route   POST /api/transactions
-exports.addTransaction = async (req, res) => {
+export const addTransaction = async (req, res) => {
   try {
     const transaction = new Transaction(req.body);
     await transaction.save();
-    res.status(201).json({ message: 'Transaction added', transaction });
+    res.status(201).json({ message: "Transaction added", transaction });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -14,7 +14,7 @@ exports.addTransaction = async (req, res) => {
 
 // @desc    Get all transactions
 // @route   GET /api/transactions
-exports.getTransactions = async (req, res) => {
+export const getTransactions = async (req, res) => {
   try {
     const transactions = await Transaction.find().sort({ date: -1 });
     res.status(200).json(transactions);
@@ -25,10 +25,10 @@ exports.getTransactions = async (req, res) => {
 
 // @desc    Delete a transaction
 // @route   DELETE /api/transactions/:id
-exports.deleteTransaction = async (req, res) => {
+export const deleteTransaction = async (req, res) => {
   try {
     await Transaction.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: 'Transaction deleted' });
+    res.status(200).json({ message: "Transaction deleted" });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

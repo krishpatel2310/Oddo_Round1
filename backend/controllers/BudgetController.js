@@ -1,14 +1,14 @@
-const Budget = require('../models/Budget');
+import Budget from "../models/Budget.js";
 
 // Create a new budget entry
-exports.createBudget = async (req, res) => {
+export const createBudget = async (req, res) => {
   try {
     const { user, category, limit } = req.body;
 
     const newBudget = new Budget({
       user,       // we assume frontend sends a user ID for now
       category,
-      limit
+      limit,
     });
 
     await newBudget.save();
@@ -19,7 +19,7 @@ exports.createBudget = async (req, res) => {
 };
 
 // Get all budgets
-exports.getAllBudgets = async (req, res) => {
+export const getAllBudgets = async (req, res) => {
   try {
     const budgets = await Budget.find().sort({ createdAt: -1 });
     res.json(budgets);
@@ -29,14 +29,14 @@ exports.getAllBudgets = async (req, res) => {
 };
 
 // Delete budget by ID
-exports.deleteBudget = async (req, res) => {
+export const deleteBudget = async (req, res) => {
   try {
     const { id } = req.params;
     const budget = await Budget.findByIdAndDelete(id);
     if (!budget) {
-      return res.status(404).json({ message: 'Budget not found' });
+      return res.status(404).json({ message: "Budget not found" });
     }
-    res.json({ message: 'Budget deleted' });
+    res.json({ message: "Budget deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,32 +1,32 @@
-const mongoose = require('mongoose');
+import mongoose from "mongoose";
 
 const expenseSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: "User",
+    required: true,
   },
   amount: {
     type: Number,
-    required: true
+    required: true,
   },
   category: {
     type: String,
-    enum: ['Food', 'Transport', 'Bills', 'Shopping', 'Health', 'Others'],
-    required: true
+    enum: ["Food", "Transport", "Bills", "Shopping", "Health", "Others"],
+    required: true,
   },
   description: String,
   date: {
     type: Date,
-    required: true
+    required: true,
   },
   week: Number,
   month: Number,
-  year: Number
+  year: Number,
 });
 
 // Auto-calculate week, month, year
-expenseSchema.pre('save', function (next) {
+expenseSchema.pre("save", function (next) {
   const d = new Date(this.date);
   this.week = Math.ceil(d.getDate() / 7);
   this.month = d.getMonth() + 1;
@@ -34,4 +34,6 @@ expenseSchema.pre('save', function (next) {
   next();
 });
 
-module.exports = mongoose.model('Expense', expenseSchema);
+const Expense = mongoose.model("Expense", expenseSchema);
+
+export default Expense;

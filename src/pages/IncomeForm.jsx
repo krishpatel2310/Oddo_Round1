@@ -1,3 +1,5 @@
+// In src/pages/IncomeForm.jsx
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -5,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-// Import the component for the dropdown
 import {
   Select,
   SelectContent,
@@ -14,25 +15,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-
-export default function ExpenseForm() {
-  const [description, setDescription] = useState("");
+export default function IncomeForm() {
+  const [source, setSource] = useState("");
   const [amount, setAmount] = useState("");
-  const [category, setCategory] = useState("");
+  const [type, setType] = useState(""); // This will be our "category" for income
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
-// In your ExpenseForm.jsx
-
-  // In ExpenseForm.jsx
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!category) {
-      setError("Please select a category from the dropdown.");
+    if (!type) {
+      setError("Please select an income type.");
       return;
     }
 
@@ -41,51 +38,44 @@ export default function ExpenseForm() {
 
     const token = localStorage.getItem('authToken');
     if (!token) {
-      setError("You must be logged in to add an expense.");
+      setError("You must be logged in to add income.");
       setIsLoading(false);
       return;
     }
 
-    const expenseData = {
+    const incomeData = {
       amount: parseFloat(amount),
-      category,
-      description,
+      source,
+      type,
       date: new Date().toISOString(),
     };
 
     try {
       await axios.post(
-        'http://localhost:5000/api/expenses',
-        expenseData,
+        'http://localhost:5000/api/incomes', // The backend endpoint for incomes
+        incomeData,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
       navigate("/dashboard");
-
     } catch (err) {
-      // ✅ THE FIX: Check for 'err.response.data.message' OR 'err.response.data.error'
-      if (err.response && err.response.data) {
-        // This will find the error message regardless of the key name
-        const errorMessage = err.response.data.message || err.response.data.error || "An error occurred.";
-        setError(errorMessage);
-        console.error("Backend Error:", err.response.data);
-      } else {
-        setError("An unexpected network error occurred. Please try again.");
-        console.error("Generic Error:", err);
-      }
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || "Failed to add income.";
+      setError(errorMessage);
+      console.error("Error adding income:", err);
     } finally {
       setIsLoading(false);
     }
   };
-  // Define the categories to match your backend
-  const categories = ["Food", "Transport", "Bills", "Shopping", "Health", "Others"];
+  
+  // Define income types
+  const incomeTypes = ["Salary", "Bonus", "Investment", "Freelance", "Gift", "Other"];
 
   return (
     <Card className="max-w-md mx-auto mt-10 shadow-lg rounded-2xl bg-slate-900 border-slate-700 text-white">
       <CardHeader>
         <CardTitle className="text-xl font-semibold text-center">
-          Add New Expense
+          Add New Income
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -93,13 +83,13 @@ export default function ExpenseForm() {
           {error && <p className="text-red-500 text-center">{error}</p>}
           
           <div>
-            <Label htmlFor="description">Expense Description</Label>
+            <Label htmlFor="source">Income Source</Label>
             <Input
-              id="description"
+              id="source"
               type="text"
-              placeholder="e.g. Grocery shopping"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. Monthly Salary"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
               required
               className="bg-slate-800 border-slate-600"
             />
@@ -110,7 +100,7 @@ export default function ExpenseForm() {
             <Input
               id="amount"
               type="number"
-              placeholder="e.g. 1500"
+              placeholder="e.g. 50000"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
@@ -118,17 +108,16 @@ export default function ExpenseForm() {
             />
           </div>
 
-          {/* ✅ REPLACED THE INPUT WITH A DROPDOWN SELECT */}
           <div>
-            <Label htmlFor="category">Category</Label>
-            <Select onValueChange={setCategory} value={category} required>
+            <Label htmlFor="type">Income Type</Label>
+            <Select onValueChange={setType} value={type} required>
               <SelectTrigger className="bg-slate-800 border-slate-600">
-                <SelectValue placeholder="Select a category" />
+                <SelectValue placeholder="Select a type" />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-slate-600 text-white">
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
+                {incomeTypes.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -136,7 +125,7 @@ export default function ExpenseForm() {
           </div>
 
           <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-            {isLoading ? 'Saving...' : 'Add Expense'}
+            {isLoading ? 'Saving...' : 'Add Income'}
           </Button>
         </form>
       </CardContent>

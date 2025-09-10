@@ -1,18 +1,19 @@
-const express = require('express');
-const router = express.Router();
-const {
+// In backend/routes/ExpenseRoutes.js
+
+import express from 'express';
+import {
   addExpense,
   getExpenses,
   deleteExpense
-} = require('../controllers/ExpenseController');
+} from '../controllers/ExpenseController.js';
+// 1. Import your authentication middleware
+import protect from '../middleware/auth.js';
 
-// POST /api/expenses
-router.post('/', addExpense);
+const router = express.Router();
 
-// GET /api/expenses
-router.get('/', getExpenses);
+// 2. Add 'protect' to the routes that should require a login
+router.post('/', protect, addExpense);
+router.get('/', protect, getExpenses);
+router.delete('/:id', protect, deleteExpense);
 
-// DELETE /api/expenses/:id
-router.delete('/:id', deleteExpense);
-
-module.exports = router;
+export default router;

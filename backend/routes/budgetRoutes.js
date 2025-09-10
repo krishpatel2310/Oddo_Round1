@@ -1,14 +1,19 @@
-const express = require('express');
+import express from "express";
+import {
+  createBudget,
+  getAllBudgets,
+  deleteBudget
+} from "../controllers/BudgetController.js";
+
 const router = express.Router();
-const budgetController = require('../controllers/BudgetController');
 
 // Create a new budget
-router.post('/', budgetController.createBudget);
+router.post("/", createBudget);
 
 // Get all budgets
-router.get('/', budgetController.getAllBudgets);
+router.get("/", getAllBudgets);
 
 // Delete a budget by ID
-router.delete('/:id', budgetController.deleteBudget);
+router.delete("/:id", deleteBudget);
 
-module.exports = router;
+export default router;

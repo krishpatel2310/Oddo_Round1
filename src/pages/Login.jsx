@@ -1,16 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Assuming you're using react-router
+import { useNavigate } from "react-router-dom";
 import InputField from "../components/InputField";
 import Button from "../components/Button";
 
-export default function Login() {
+export default function Login({ setUser }) {   // 👈 accept setUser from App.jsx
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-      
-      
-  
-
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -34,11 +30,18 @@ export default function Login() {
         return;
       }
 
-      // Save JWT token in localStorage
-      localStorage.setItem("token", data.token);
+      // Save JWT + user to localStorage
+      localStorage.setItem("authToken", data.authtoken);
       localStorage.setItem("user", JSON.stringify(data.user));
+       // ADD THIS LINE
+       
+      console.log("LOGIN PAGE: Token successfully saved to localStorage:", data.authtoken);
+        
       
-      // Redirect to dashboard or home page
+
+      // 👇 Immediately update global React state so Navbar updates
+      setUser(data.user);
+
       navigate("/dashboard");
     } catch (err) {
       setError("Network error, please try again");
@@ -48,7 +51,7 @@ export default function Login() {
 
   return (
     <div className="flex h-screen w-full">
-      {/* Left side - branding */}
+      {/* Left side */}
       <div className="hidden lg:flex flex-1 flex-col justify-center bg-gradient-to-br from-indigo-800 to-teal-700 text-white p-16">
         <h1 className="text-5xl font-extrabold leading-tight mb-6">
           ExpenseTracker
@@ -59,7 +62,7 @@ export default function Login() {
         </p>
       </div>
 
-      {/* Right side - login form */}
+      {/* Right side */}
       <div className="flex flex-1 items-center justify-center bg-slate-900">
         <form
           onSubmit={handleSubmit}
@@ -69,9 +72,7 @@ export default function Login() {
             Sign In
           </h2>
 
-          {error && (
-            <p className="text-red-500 text-center mb-4">{error}</p>
-          )}
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
           <InputField
             label="Email"

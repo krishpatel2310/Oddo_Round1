@@ -1,9 +1,18 @@
-const express = require('express');
+// In backend/routes/incomeRoutes.js
+
+import express from 'express';
+import {
+  createIncome,
+  getAllIncomes,
+  deleteIncome,
+} from '../controllers/IncomeController.js';
+import protect from '../middleware/auth.js'; 
+
 const router = express.Router();
-const incomeController = require('../controllers/IncomeController');
 
-router.post('/', incomeController.createIncome);
-router.get('/', incomeController.getAllIncomes);
-router.delete('/:id', incomeController.deleteIncome);
+// 👇 2. Add 'protect' to the routes
+router.post('/', protect, createIncome);
+router.get('/', protect, getAllIncomes);
+router.delete('/:id', protect, deleteIncome);
 
-module.exports = router;
+export default router;
