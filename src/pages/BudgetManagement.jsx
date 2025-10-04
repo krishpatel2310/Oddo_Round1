@@ -4,7 +4,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { AlertTriangle, TrendingUp, TrendingDown, PlusCircle, Target, DollarSign, Calendar, AlertCircle } from 'lucide-react';
+import { AlertTriangle, TrendingUp, TrendingDown, PlusCircle, Target, DollarSign, Calendar, AlertCircle, BarChart3, PieChart, Activity, Wallet, ShoppingBag, Home, Car, Heart, MoreHorizontal } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart as RechartsPieChart, Cell, LineChart, Line, AreaChart, Area, RadialBarChart, RadialBar, Pie, ComposedChart, Scatter, ScatterChart, ZAxis, Treemap, FunnelChart, Funnel, LabelList } from 'recharts';
 import BudgetCharts from '../components/BudgetCharts';
 import BudgetForm from '../components/BudgetForm';
 import axios from 'axios';
@@ -16,6 +17,30 @@ const BudgetManagement = () => {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState(null);
+
+  // Chart color schemes
+  const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6', '#F97316', '#84CC16', '#06B6D4', '#A855F7'];
+  const LIGHT_COLORS = ['#DBEAFE', '#FEE2E2', '#D1FAE5', '#FEF3C7', '#EDE9FE', '#FCE7F3', '#E0E7FF', '#CCFBF1', '#FED7AA', '#ECFCCB', '#CFFAFE', '#F3E8FF'];
+  const GRADIENT_COLORS = [
+    { start: '#3B82F6', end: '#1D4ED8' },
+    { start: '#EF4444', end: '#DC2626' },
+    { start: '#10B981', end: '#059669' },
+    { start: '#F59E0B', end: '#D97706' },
+    { start: '#8B5CF6', end: '#7C3AED' },
+    { start: '#EC4899', end: '#DB2777' },
+    { start: '#F97316', end: '#EA580C' },
+    { start: '#84CC16', end: '#65A30D' }
+  ];
+
+  // Category icons mapping
+  const categoryIcons = {
+    'Food': ShoppingBag,
+    'Transport': Car,
+    'Bills': Home,
+    'Shopping': ShoppingBag,
+    'Health': Heart,
+    'Others': MoreHorizontal
+  };
 
   // Helper function to format currency in Rupees
   const formatCurrency = (amount) => {
@@ -253,9 +278,124 @@ const BudgetManagement = () => {
     return null;
   };
 
+  // Prepare chart data
+  const prepareChartData = () => {
+    if (!budgets || budgets.length === 0) return { 
+      pieData: [], barData: [], lineData: [], radialData: [], areaData: [], 
+      scatterData: [], treemapData: [], composedData: [], funnelData: [],
+      bubbleData: [], waterfallData: []
+    };
+
+    const pieData = budgets.map((budget, index) => ({
+      name: budget.category,
+      value: budget.spent || 0,
+      budgeted: budget.budgetAmount,
+      percentage: budget.budgetAmount > 0 ? ((budget.spent || 0) / budget.budgetAmount * 100).toFixed(1) : 0,
+      color: COLORS[index % COLORS.length]
+    }));
+
+    const barData = budgets.map(budget => ({
+      category: budget.category,
+      spent: budget.spent || 0,
+      budget: budget.budgetAmount,
+      remaining: Math.max(0, budget.budgetAmount - (budget.spent || 0)),
+      percentage: budget.budgetAmount > 0 ? ((budget.spent || 0) / budget.budgetAmount * 100) : 0
+    }));
+
+    const lineData = budgets.map((budget, index) => ({
+      category: budget.category,
+      utilization: budget.budgetAmount > 0 ? ((budget.spent || 0) / budget.budgetAmount * 100) : 0,
+      target: 80, // Target utilization percentage
+      index: index + 1
+    }));
+
+    const radialData = budgets.map((budget, index) => ({
+      name: budget.category,
+      value: budget.budgetAmount > 0 ? Math.min(100, ((budget.spent || 0) / budget.budgetAmount * 100)) : 0,
+      fill: COLORS[index % COLORS.length]
+    }));
+
+    const areaData = budgets.map((budget) => ({
+      month: budget.category,
+      spent: budget.spent || 0,
+      budget: budget.budgetAmount,
+      savings: Math.max(0, budget.budgetAmount - (budget.spent || 0))
+    }));
+
+    // Scatter plot data (Budget vs Utilization)
+    const scatterData = budgets.map((budget, index) => ({
+      x: budget.budgetAmount || 0,
+      y: budget.budgetAmount > 0 ? ((budget.spent || 0) / budget.budgetAmount * 100) : 0,
+      z: budget.spent || 0,
+      category: budget.category,
+      fill: COLORS[index % COLORS.length]
+    }));
+
+    // Treemap data
+    const treemapData = budgets.map((budget, index) => ({
+      name: budget.category,
+      size: budget.spent || 0,
+      fill: COLORS[index % COLORS.length]
+    }));
+
+    // Composed chart data (combines multiple chart types)
+    const composedData = budgets.map(budget => ({
+      category: budget.category,
+      spent: budget.spent || 0,
+      budget: budget.budgetAmount,
+      efficiency: budget.budgetAmount > 0 ? ((budget.budgetAmount - (budget.spent || 0)) / budget.budgetAmount * 100) : 0,
+      utilization: budget.budgetAmount > 0 ? ((budget.spent || 0) / budget.budgetAmount * 100) : 0
+    }));
+
+    // Funnel data (represents budget allocation funnel)
+    const funnelData = budgets
+      .sort((a, b) => (b.budgetAmount || 0) - (a.budgetAmount || 0))
+      .map((budget, index) => ({
+        value: budget.budgetAmount || 0,
+        name: budget.category,
+        fill: COLORS[index % COLORS.length]
+      }));
+
+    // Bubble chart data
+    const bubbleData = budgets.map((budget, index) => ({
+      x: budget.budgetAmount || 0,
+      y: budget.spent || 0,
+      z: budget.budgetAmount > 0 ? ((budget.spent || 0) / budget.budgetAmount * 100) : 0,
+      category: budget.category,
+      fill: COLORS[index % COLORS.length]
+    }));
+
+    // Waterfall data for cumulative budget analysis
+    let cumulative = 0;
+    const waterfallData = budgets.map((budget, index) => {
+      const currentSpent = budget.spent || 0;
+      const start = cumulative;
+      cumulative += currentSpent;
+      return {
+        category: budget.category,
+        start: start,
+        end: cumulative,
+        value: currentSpent,
+        fill: COLORS[index % COLORS.length]
+      };
+    });
+
+    return { 
+      pieData, barData, lineData, radialData, areaData,
+      scatterData, treemapData, composedData, funnelData,
+      bubbleData, waterfallData
+    };
+  };
+
+  const { 
+    pieData, barData, lineData, radialData, areaData,
+    scatterData, treemapData, composedData, funnelData,
+    bubbleData, waterfallData 
+  } = prepareChartData();
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
@@ -396,6 +536,229 @@ const BudgetManagement = () => {
             />
           )}
         </div>
+
+        {/* Advanced Analytics Charts */}
+        {budgets.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mt-8">
+            {/* Scatter Plot - Budget vs Utilization */}
+            <Card className="shadow-lg border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">Budget vs Utilization</CardTitle>
+                <CardDescription className="text-gray-600">Analyze spending patterns across categories</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart data={scatterData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="x" 
+                      name="Budget Amount" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                    />
+                    <YAxis 
+                      dataKey="y" 
+                      name="Utilization %" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                    />
+                    <ZAxis dataKey="z" range={[50, 300]} name="Spent Amount" />
+                    <Tooltip 
+                      formatter={(value, name) => [
+                        name === 'Budget Amount' ? formatCurrency(value) : 
+                        name === 'Utilization %' ? `${value.toFixed(1)}%` : 
+                        formatCurrency(value), 
+                        name
+                      ]}
+                      labelFormatter={(label) => `Category: ${scatterData.find(d => d.x === label)?.category || ''}`}
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                    <Scatter dataKey="y">
+                      {scatterData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                    </Scatter>
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Treemap - Expense Distribution */}
+            <Card className="shadow-lg border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">Expense Distribution</CardTitle>
+                <CardDescription className="text-gray-600">Hierarchical view of spending by category</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <Treemap
+                    data={treemapData}
+                    dataKey="size"
+                    aspectRatio={4/3}
+                    stroke="#fff"
+                    strokeWidth={2}
+                  >
+                    <Tooltip 
+                      formatter={(value) => [formatCurrency(value), 'Amount Spent']}
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                  </Treemap>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Composed Chart - Multi-metric Analysis */}
+            <Card className="shadow-lg border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">Multi-Metric Analysis</CardTitle>
+                <CardDescription className="text-gray-600">Combined view of spending efficiency</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ComposedChart data={composedData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="category" 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#6b7280' }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      yAxisId="left"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                    />
+                    <YAxis 
+                      yAxisId="right" 
+                      orientation="right"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                    />
+                    <Tooltip 
+                      formatter={(value, name) => [
+                        name.includes('%') ? `${value.toFixed(1)}%` : formatCurrency(value), 
+                        name
+                      ]}
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                    <Legend />
+                    <Bar yAxisId="left" dataKey="spent" fill={COLORS[0]} name="Amount Spent" />
+                    <Bar yAxisId="left" dataKey="budget" fill={LIGHT_COLORS[1]} name="Budget Amount" />
+                    <Line yAxisId="right" type="monotone" dataKey="efficiency" stroke={COLORS[2]} strokeWidth={3} name="Efficiency %" />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Funnel Chart - Budget Allocation */}
+            <Card className="shadow-lg border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">Budget Allocation Funnel</CardTitle>
+                <CardDescription className="text-gray-600">Budget distribution by category size</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <FunnelChart>
+                    <Tooltip 
+                      formatter={(value) => [formatCurrency(value), 'Budget Amount']}
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                    <Funnel
+                      dataKey="value"
+                      data={funnelData}
+                      isAnimationActive
+                    >
+                      <LabelList position="center" fill="#fff" stroke="none" />
+                      {funnelData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                    </Funnel>
+                  </FunnelChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Bubble Chart - 3D Analysis */}
+            <Card className="shadow-lg border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">Budget vs Spending Analysis</CardTitle>
+                <CardDescription className="text-gray-600">Bubble size represents utilization percentage</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <ScatterChart data={bubbleData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="x" 
+                      name="Budget Amount"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                    />
+                    <YAxis 
+                      dataKey="y" 
+                      name="Amount Spent"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                    />
+                    <ZAxis dataKey="z" range={[20, 200]} name="Utilization %" />
+                    <Tooltip 
+                      formatter={(value, name) => [
+                        name === 'Utilization %' ? `${value.toFixed(1)}%` : formatCurrency(value), 
+                        name
+                      ]}
+                      labelFormatter={(label) => `Category: ${bubbleData.find(d => d.x === label)?.category || ''}`}
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                    <Scatter dataKey="y">
+                      {bubbleData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                    </Scatter>
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Waterfall Chart - Cumulative Spending */}
+            <Card className="shadow-lg border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-800">Cumulative Spending Flow</CardTitle>
+                <CardDescription className="text-gray-600">Progressive expense accumulation</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={waterfallData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis 
+                      dataKey="category"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#6b7280' }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: '#6b7280' }}
+                    />
+                    <Tooltip 
+                      formatter={(value) => [formatCurrency(value), 'Amount']}
+                      contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                    />
+                    <Bar dataKey="value" stackId="a">
+                      {waterfallData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Budget List */}
         <Card className="shadow-lg border border-gray-200">
