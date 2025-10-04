@@ -1,94 +1,104 @@
-// In src/components/Navbar.jsx
-
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { CircleUser, LogOut } from "lucide-react";
+import { Bell, Calendar, Clock, Sun, Moon, LogOut, LogIn, User } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
 
 const Navbar = ({ user, setUser }) => {
   const navigate = useNavigate();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const dropdownRef = useRef(null);
 
   const handleLogout = () => {
-    // ✅ FIX: Remove both the user AND the auth token
+    localStorage.removeItem("authToken");
     localStorage.removeItem("user");
-    localStorage.removeItem("authToken"); // This is the critical fix
     setUser(null);
     navigate("/login");
   };
 
-  const activeLinkStyle = {
-    color: 'white',
-    textDecoration: 'underline',
-    textUnderlineOffset: '4px'
-  };
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
 
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   return (
-    <nav className="relative z-20 flex justify-between items-center px-8 py-4 bg-slate-900/50 backdrop-blur-sm border-b border-slate-700/50">
-      {/* Left Side: Brand */}
-      <Link to={user ? "/dashboard" : "/"} className="text-2xl font-bold text-white">
-        Expense<span className="text-slate-400">Tracker</span>
-      </Link>
+    <header className="flex items-center justify-between bg-white border-b border-gray-200 px-6 py-3 sticky top-0 z-40">
+      {/* Left side: greeting */}
+      <div>
+        <h1 className="text-lg font-semibold text-gray-800">
+          Good morning, {user?.name || "User"}!
+        </h1>
+        <p className="text-sm text-gray-500">
+          Here's your financial overview
+        </p>
+      </div>
 
-      {/* Right Side: Links and Actions */}
-      <div className="flex items-center gap-6">
+      {/* Right side: actions */}
+      <div className="flex items-center gap-4">
+        {/* Add Transaction Button */}
+       <Link to="/add-transaction">
+        <button className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg shadow-sm transition">
+          + Add Transaction
+        </button>
+        </Link>
+
+        {/* Icons */}
+        <Link to="/reminders">
+        <button className="relative p-2 rounded-full hover:bg-gray-100">
+          <Bell className="w-5 h-5 text-gray-600" />
+          {/* Notification dot */}
+          <span className="absolute top-1 right-1 block w-2 h-2 bg-blue-500 rounded-full"></span>
+        </button>
+        </Link>
+
+        {/* User Menu / Login-Logout */}
         {user ? (
-          // --- Logged-In View ---
-          <>
-            <NavLink 
-              to="/dashboard" 
-              className="text-slate-400 hover:text-white transition-colors" 
-              style={({ isActive }) => isActive ? activeLinkStyle : undefined}
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              Dashboard
-            </NavLink>
-            <NavLink 
-              to="/transactions" 
-              className="text-slate-400 hover:text-white transition-colors"
-              style={({ isActive }) => isActive ? activeLinkStyle : undefined}
-            >
-              Transactions
-            </NavLink>
+              <div className="w-8 h-8 flex items-center justify-center rounded-full bg-pink-500 text-white font-semibold">
+                {user?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
+              </div>
+              <span className="hidden md:inline text-sm font-medium text-gray-700">
+                {user?.name || user?.email || "User"}
+              </span>
+            </button>
             
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2 bg-transparent border-slate-600 text-slate-300 hover:bg-slate-800/50 hover:text-white">
-                   <CircleUser size={18} />
-                   <span>{user.name}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-slate-800 border-slate-700 text-slate-200">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-slate-700" />
-                <DropdownMenuItem className="cursor-pointer focus:bg-slate-700 focus:text-white">Profile</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer focus:bg-slate-700 focus:text-white">Settings</DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-slate-700" />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-400 focus:bg-red-500/20 focus:text-red-300">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+            {/* Dropdown Menu */}
+            {showUserMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                <div className="px-4 py-2 border-b border-gray-100">
+                  <p className="text-sm font-medium text-gray-900">{user?.name || "User"}</p>
+                  <p className="text-xs text-gray-500">{user?.email}</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
-          // --- Logged-Out View ---
-          <>
-            <Link to="/login">
-              <Button variant="ghost" className="text-slate-300 hover:text-white">Login</Button>
-            </Link>
-            <Link to="/signup">
-              <Button className="bg-slate-700 text-white hover:bg-slate-600">Sign Up</Button>
-            </Link>
-          </>
+          <Link to="/login">
+            <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-sm transition">
+              <LogIn className="w-4 h-4" />
+              Login
+            </button>
+          </Link>
         )}
       </div>
-    </nav>
+    </header>
   );
 };
 

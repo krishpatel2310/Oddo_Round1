@@ -1,13 +1,16 @@
 import express from "express";
 import { registerUser, getAllUsers , getDashboardSummary } from "../controllers/UserController.js";
-import  protect from "../middleware/auth.js";
+
+import auth from '../Middleware/auth.js';
 const router = express.Router();
 
-// POST /api/users
-router.post("/", registerUser);
+// Registration route - no auth required
+router.post("/registerUser", registerUser);
 
-// GET /api/users
-router.get("/", getAllUsers);
-router.get("/summary", protect, getDashboardSummary);
+
+
+router.get("/", auth, getAllUsers);
+router.get("/summary", auth, getDashboardSummary);
+
 export default router;
 

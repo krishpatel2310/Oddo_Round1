@@ -1,45 +1,94 @@
 import { useState, useEffect } from 'react';
 import './App.css';
-import { Routes, Route } from 'react-router-dom';
-import Navbar from './components/navbar';
-import Home from './pages/home';
-import Dashboard from "@/pages/Dashboard";
+import { Routes, Route, Navigate } from 'react-router-dom';
+
+// Import the new Layout component
+import Layout from '@/components/layout'; 
+
+// Import your page components
+import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import ExpenseForm from './pages/ExpenseForm';
-import TransactionsPage from './pages/TransactionsPage'; 
 import ExpenseHistoryPage from './pages/ExpenseHistoryPage';
-import IncomeForm from './pages/IncomeForm';
+import Reminders from './pages/Reminders';
+import AddTransaction from './pages/AddTransaction';
+import BudgetManagement from './pages/BudgetManagement';
+
+import { Settings } from 'lucide-react';
+import SettingsPage from './pages/Settings';
+
+// Helper component to protect routes
+const ProtectedRoute = ({ user, children }) => {
+  if (!user) {
+    // If user is not logged in, redirect them to the login page
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 function App() {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Load user from localStorage on app load
   useEffect(() => {
-    // ✅ CORRECTED: Check for BOTH the token and the user information
     const token = localStorage.getItem("authToken");
     const storedUser = localStorage.getItem("user");
 
-    // Only set the user as logged in if both items exist
     if (token && storedUser) {
       setUser(JSON.parse(storedUser));
     }
+    setLoading(false); // Stop loading once user check is complete
   }, []);
 
+  // Show a loading indicator while checking for user session
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
   return (
-    <>
-      <Navbar user={user} setUser={setUser} />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login setUser={setUser} />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/expense" element={<ExpenseForm />} />
-        <Route path="/transactions" element={<TransactionsPage />} />
-        <Route path="/expencehistory" element={<ExpenseHistoryPage />} />
-         <Route path="/add-income" element={<IncomeForm />} />
-      </Routes>
-    </>
+    <Routes>
+     
+      <Route element={<Layout user={user} setUser={setUser} />}>
+        <Route 
+          path="/dashboard" 
+          element={<ProtectedRoute user={user}><Dashboard /></ProtectedRoute>} 
+        />
+        <Route 
+          path="/expencehistory" 
+          element={<ProtectedRoute user={user}><ExpenseHistoryPage /></ProtectedRoute>} 
+        />
+        <Route 
+          path="/reminders" 
+          element={<ProtectedRoute user={user}><Reminders /></ProtectedRoute>} 
+        />
+        <Route 
+          path="/add-transaction" 
+          element={<ProtectedRoute user={user}><AddTransaction /></ProtectedRoute>} 
+        />
+        <Route 
+          path="/budget-management" 
+          element={<ProtectedRoute user={user}><BudgetManagement /></ProtectedRoute>} 
+        />      
+        <Route 
+          path="/settings"
+          element={<ProtectedRoute user={user}><SettingsPage /></ProtectedRoute>}
+        /> 
+      </Route>
+
+      
+      <Route path="/login" element={<Login setUser={setUser} />} />
+      <Route path="/signup" element={<Signup />} />
+
+    
+      <Route 
+        path="/" 
+        element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} 
+      />
+    </Routes>
   );
 }
 

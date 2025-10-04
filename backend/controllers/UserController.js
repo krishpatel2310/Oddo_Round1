@@ -1,14 +1,12 @@
 import User from "../models/User.js";
-import Income from "../models/Income.js";
-import Expense from "../models/Expense.js";
-import Budget from "../models/Budget.js";
+import Transaction from "../models/Transaction.js";
 
-// Register user
+
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Optional: Check if email exists
+   
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: "User already exists" });
 
@@ -21,7 +19,6 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// Get all users (optional use)
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
@@ -34,35 +31,58 @@ export const getAllUsers = async (req, res) => {
 
 export const getDashboardSummary = async (req, res) => {
   try {
-    // We get the user ID from the auth middleware
+   
     const userId = req.user.id;
     const date = new Date();
     const currentYear = date.getFullYear();
-    const currentMonth = date.getMonth() + 1; // Mongoose middleware saves month as 1-12
+    const currentMonth = date.getMonth() + 1;
 
-    // Get total income for the current month
-    const incomeRecords = await Income.find({ user: userId, year: currentYear, month: currentMonth });
-    const totalIncome = incomeRecords.reduce((sum, item) => sum + item.amount, 0);
+   
+    // Get monthly income using Transaction model
+    const incomeResult = await Transaction.aggregate([
+      {
+        $match: {
+          user: userId,
+          transactionType: 'income',
+          month: currentMonth,
+          year: currentYear
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
 
-    // Get total expenses for the current month
-    const expenseRecords = await Expense.find({ user: userId, year: currentYear, month: currentMonth });
-    const totalExpenses = expenseRecords.reduce((sum, item) => sum + item.amount, 0);
+    // Get monthly expenses using Transaction model
+    const expenseResult = await Transaction.aggregate([
+      {
+        $match: {
+          user: userId,
+          transactionType: 'expense',
+          month: currentMonth,
+          year: currentYear
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
 
-    // Get total budget for the current month by summing all category limits
-    const budgetRecords = await Budget.find({ user: userId, year: currentYear, month: currentMonth });
-    const totalBudget = budgetRecords.reduce((sum, item) => sum + item.limit, 0);
-
-    // Calculate derived values
+    const totalIncome = incomeResult[0]?.total || 0;
+    const totalExpenses = expenseResult[0]?.total || 0;
     const savings = totalIncome - totalExpenses;
-    const budgetUtilization = totalBudget > 0 ? Math.round((totalExpenses / totalBudget) * 100) : 0;
 
-    // Send the final summary object
+  
     res.status(200).json({
       income: totalIncome,
       expenses: totalExpenses,
-      budget: totalBudget,
       savings: savings,
-      budgetUtilizationPercentage: budgetUtilization,
     });
 
   } catch (error) {
