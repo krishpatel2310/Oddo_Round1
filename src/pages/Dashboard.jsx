@@ -51,6 +51,10 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [budgetOverview, setBudgetOverview] = useState(null);
 
+
+
+
+
   // Process analytics data from transactions
   const processAnalyticsData = (transactions) => {
     if (!transactions || transactions.length === 0) {
@@ -81,13 +85,26 @@ export default function Dashboard() {
   useEffect(() => {
     // Get user data from localStorage
     const storedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("authToken");
+    
+
+    
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
 
+    // If no token, don't make API calls
+    if (!token) {
+      setError("Please log in to view dashboard");
+      setIsLoading(false);
+      // Redirect to login page
+      window.location.href = '/login';
+      return;
+    }
+
     const fetchDashboardData = async () => {
       try {
-        const token = localStorage.getItem("authToken");
+
         
         // Fetch summary data
         const summaryResponse = await fetch("http://localhost:5000/api/transactions/summary", {
@@ -99,7 +116,7 @@ export default function Dashboard() {
         });
 
         if (!summaryResponse.ok) {
-          throw new Error("Failed to fetch dashboard data");
+          throw new Error(`Failed to fetch dashboard data: ${summaryResponse.status} ${summaryResponse.statusText}`);
         }
         
         const summaryData = await summaryResponse.json();
@@ -153,8 +170,8 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
-        <div className="text-center bg-white p-8 rounded-2xl shadow-lg">
+      <div className="min-h-screen w-full flex items-center justify-center bg-white">
+        <div className="text-center p-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600 font-medium">Loading Dashboard...</p>
         </div>
@@ -164,16 +181,16 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-red-50">
-        <div className="bg-white p-8 rounded-2xl shadow-lg text-red-600 text-center">
+      <div className="min-h-screen w-full flex items-center justify-center bg-white">
+        <div className="bg-red-50 p-8 rounded-lg text-red-600 text-center max-w-md">
           <p className="font-semibold text-lg">Error: {error}</p>
           <p className="mt-2 text-sm text-gray-600">Please try refreshing the page.</p>
-          <Button 
+          <button 
             onClick={() => window.location.reload()} 
-            className="mt-4 bg-red-600 hover:bg-red-700"
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
             Refresh Page
-          </Button>
+          </button>
         </div>
       </div>
     );
@@ -252,7 +269,7 @@ export default function Dashboard() {
                           <div className="flex justify-between items-center mb-1">
                             <span className="font-medium text-gray-700">{item.category}</span>
                             <span className="font-semibold text-gray-900">
-                              ₹{item.amount.toLocaleString('en-IN')}
+                              ₹{(item?.amount || 0).toLocaleString('en-IN')}
                             </span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -308,13 +325,13 @@ export default function Dashboard() {
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
                         <p className="text-sm text-gray-600">Total Budget</p>
                         <p className="text-lg font-bold text-blue-600">
-                          ₹{budgetOverview.overview.totalBudget.toLocaleString('en-IN')}
+                          ₹{(budgetOverview?.overview?.totalBudget || 0).toLocaleString('en-IN')}
                         </p>
                       </div>
                       <div className="text-center p-3 bg-green-50 rounded-lg">
                         <p className="text-sm text-gray-600">Remaining</p>
                         <p className="text-lg font-bold text-green-600">
-                          ₹{budgetOverview.overview.totalRemaining.toLocaleString('en-IN')}
+                          ₹{(budgetOverview?.overview?.totalRemaining || 0).toLocaleString('en-IN')}
                         </p>
                       </div>
                     </div>
@@ -324,26 +341,26 @@ export default function Dashboard() {
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium text-gray-600">Overall Utilization</span>
                         <span className="text-sm font-bold text-gray-900">
-                          {budgetOverview.overview.budgetUtilization}%
+                          {(budgetOverview?.overview?.budgetUtilization || 0)}%
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-3">
                         <div 
                           className={`h-3 rounded-full transition-all duration-300 ${
-                            budgetOverview.overview.budgetUtilization >= 100 ? 'bg-red-500' : 
-                            budgetOverview.overview.budgetUtilization >= 80 ? 'bg-yellow-500' : 
+                            (budgetOverview?.overview?.budgetUtilization || 0) >= 100 ? 'bg-red-500' : 
+                            (budgetOverview?.overview?.budgetUtilization || 0) >= 80 ? 'bg-yellow-500' : 
                             'bg-green-500'
                           }`}
-                          style={{ width: `${Math.min(budgetOverview.overview.budgetUtilization, 100)}%` }}
+                          style={{ width: `${Math.min(budgetOverview?.overview?.budgetUtilization || 0, 100)}%` }}
                         ></div>
                       </div>
                     </div>
 
                     {/* Category Budgets (Top 3) */}
                     {budgetOverview.categoryData && budgetOverview.categoryData.slice(0, 3).map((budget) => {
-                      const percentage = parseFloat(budget.percentage);
-                      const IconComponent = categoryIcons[budget.category] || MoreHorizontal;
-                      const colorClass = categoryColors[budget.category] || 'bg-gray-500';
+                      const percentage = parseFloat(budget?.percentage || 0);
+                      const IconComponent = categoryIcons[budget?.category] || MoreHorizontal;
+                      const colorClass = categoryColors[budget?.category] || 'bg-gray-500';
                       
                       return (
                         <div key={budget.category} className="flex items-center gap-4">
@@ -354,7 +371,7 @@ export default function Dashboard() {
                             <div className="flex justify-between items-center mb-1">
                               <span className="font-medium text-gray-700">{budget.category}</span>
                               <span className="text-sm font-semibold text-gray-900">
-                                ₹{budget.spent.toLocaleString('en-IN')} / ₹{budget.budgeted.toLocaleString('en-IN')}
+                                ₹{(budget?.spent || 0).toLocaleString('en-IN')} / ₹{(budget?.budgeted || 0).toLocaleString('en-IN')}
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -493,7 +510,7 @@ export default function Dashboard() {
                           }`}
                         >
                           {transaction.transactionType === "income" ? "+" : "-"}₹
-                          {Math.abs(transaction.amount).toLocaleString("en-IN")}
+                          {Math.abs(transaction?.amount || 0).toLocaleString("en-IN")}
                         </p>
                         <p className="text-xs text-gray-500 capitalize">
                           {transaction.transactionType === 'income' 

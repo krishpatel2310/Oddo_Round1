@@ -17,9 +17,21 @@ const BudgetManagement = () => {
   const [showForm, setShowForm] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState(null);
 
+  // Helper function to format currency in Rupees
+  const formatCurrency = (amount) => {
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount)) return '₹0';
+    return `₹${numAmount.toLocaleString('en-IN', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    })}`;
+  };
+
   const loadBudgetData = async () => {
     try {
       setLoading(true);
+      setError(''); // Clear previous errors
+      
       const token = localStorage.getItem('authToken');
       if (!token) {
         setError('Please login first');
@@ -28,25 +40,39 @@ const BudgetManagement = () => {
 
       const headers = { Authorization: `Bearer ${token}` };
       
-      // Load budgets
-      const budgetsResponse = await axios.get('http://localhost:5000/api/budgets', { headers });
+      // Get current month and year
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1;
+      const currentYear = currentDate.getFullYear();
+      
+      console.log('Loading budgets for:', { month: currentMonth, year: currentYear });
+      
+      // Load budgets with month/year parameters
+      const budgetsResponse = await axios.get(`http://localhost:5000/api/budgets?month=${currentMonth}&year=${currentYear}`, { headers });
       console.log('Budgets response:', budgetsResponse.data);
       setBudgets(budgetsResponse.data.budgets || []);
 
-      // Load analytics
-      const analyticsResponse = await axios.get('http://localhost:5000/api/budgets/analytics', { headers });
+      // Load analytics with month/year parameters
+      const analyticsResponse = await axios.get(`http://localhost:5000/api/budgets/analytics?month=${currentMonth}&year=${currentYear}`, { headers });
       console.log('Analytics response:', analyticsResponse.data);
       setBudgetAnalytics(analyticsResponse.data);
       
     } catch (error) {
       console.error('Error loading budget data:', error);
-      setError(error.response?.data?.message || 'Failed to load budget data');
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      setError(error.response?.data?.error || error.response?.data?.message || 'Failed to load budget data');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log('BudgetManagement component mounted, loading data...');
     loadBudgetData();
   }, []);
 
@@ -55,12 +81,27 @@ const BudgetManagement = () => {
       const token = localStorage.getItem('authToken');
       const headers = { Authorization: `Bearer ${token}` };
       
+      // Add current month and year to budget data
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1;
+      const currentYear = currentDate.getFullYear();
+      
+      const budgetPayload = {
+        ...budgetData,
+        month: currentMonth,
+        year: currentYear
+      };
+      
+      console.log('Saving budget with data:', budgetPayload);
+      
       if (selectedBudget) {
         // Update existing budget
-        await axios.put(`http://localhost:5000/api/budgets/${selectedBudget._id}`, budgetData, { headers });
+        const response = await axios.put(`http://localhost:5000/api/budgets/${selectedBudget._id}`, budgetPayload, { headers });
+        console.log('Update response:', response.data);
       } else {
         // Create new budget
-        await axios.post('http://localhost:5000/api/budgets', budgetData, { headers });
+        const response = await axios.post('http://localhost:5000/api/budgets', budgetPayload, { headers });
+        console.log('Create response:', response.data);
       }
       
       setShowForm(false);
@@ -68,7 +109,13 @@ const BudgetManagement = () => {
       loadBudgetData();
     } catch (error) {
       console.error('Error saving budget:', error);
-      setError(error.response?.data?.message || 'Failed to save budget');
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      setError(error.response?.data?.error || error.response?.data?.message || 'Failed to save budget');
     }
   };
 
@@ -89,6 +136,108 @@ const BudgetManagement = () => {
     } catch (error) {
       console.error('Error deleting budget:', error);
       setError('Failed to delete budget');
+    }
+  };
+
+  // Test function to create sample budgets with different spending levels
+  const createTestBudget = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const headers = { Authorization: `Bearer ${token}` };
+      
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1;
+      const currentYear = currentDate.getFullYear();
+      
+      // Create multiple test budgets
+      const testBudgets = [
+        {
+          category: 'Food',
+          budgetAmount: 1000,
+          period: 'monthly',
+          alertThreshold: 80,
+          alertEnabled: true,
+          month: currentMonth,
+          year: currentYear
+        },
+        {
+          category: 'Transport',
+          budgetAmount: 500,
+          period: 'monthly',
+          alertThreshold: 80,
+          alertEnabled: true,
+          month: currentMonth,
+          year: currentYear
+        },
+        {
+          category: 'Shopping',
+          budgetAmount: 800,
+          period: 'monthly',
+          alertThreshold: 80,
+          alertEnabled: true,
+          month: currentMonth,
+          year: currentYear
+        }
+      ];
+      
+      console.log('Creating test budgets:', testBudgets);
+      
+      for (const testBudget of testBudgets) {
+        try {
+          const response = await axios.post('http://localhost:5000/api/budgets', testBudget, { headers });
+          console.log(`Test budget created for ${testBudget.category}:`, response.data);
+        } catch (budgetError) {
+          console.log(`Budget for ${testBudget.category} might already exist:`, budgetError.response?.data);
+        }
+      }
+      
+      // Now create some test transactions to simulate spending
+      const testTransactions = [
+        {
+          transactionType: 'expense',
+          amount: 1500, // This will cause overspending in Food category
+          category: 'Food',
+          description: 'Grocery shopping',
+          month: currentMonth,
+          year: currentYear
+        },
+        {
+          transactionType: 'expense',
+          amount: 200,
+          category: 'Transport',
+          description: 'Fuel',
+          month: currentMonth,
+          year: currentYear
+        },
+        {
+          transactionType: 'expense',
+          amount: 300,
+          category: 'Shopping',
+          description: 'Clothes',
+          month: currentMonth,
+          year: currentYear
+        }
+      ];
+      
+      console.log('Creating test transactions:', testTransactions);
+      
+      for (const transaction of testTransactions) {
+        try {
+          await axios.post('http://localhost:5000/api/transactions', transaction, { headers });
+          console.log(`Test transaction created for ${transaction.category}`);
+        } catch (transactionError) {
+          console.error(`Error creating transaction for ${transaction.category}:`, transactionError.response?.data);
+        }
+      }
+      
+      // Refresh data after creating test data
+      setTimeout(() => {
+        loadBudgetData();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error creating test budget:', error);
+      setError(error.response?.data?.error || 'Failed to create test budget');
     }
   };
 
@@ -151,13 +300,37 @@ const BudgetManagement = () => {
           </div>
         )}
 
-        {/* Debug Info */}
-        <div className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-3 rounded-lg mb-6">
+        {/* Debug Info - Temporary for troubleshooting */}
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-6">
           <div className="text-sm">
-            <p><strong>Debug Info:</strong></p>
+            <p><strong>Debug Status:</strong></p>
             <p>Show Form: {showForm ? 'true' : 'false'}</p>
             <p>Selected Budget: {selectedBudget ? selectedBudget._id : 'none'}</p>
             <p>Budgets Count: {budgets.length}</p>
+            <p>Loading: {loading ? 'true' : 'false'}</p>
+            <p>Current Time: {new Date().toLocaleString()}</p>
+            <div className="flex gap-2 mt-2">
+              <Button 
+                onClick={() => {
+                  console.log('Refresh clicked');
+                  loadBudgetData();
+                }}
+                size="sm"
+                className="bg-blue-600 text-white"
+              >
+                Refresh Data
+              </Button>
+              <Button 
+                onClick={() => {
+                  console.log('Create test budget clicked');
+                  createTestBudget();
+                }}
+                size="sm"
+                className="bg-green-600 text-white"
+              >
+                Create Test Data
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -168,7 +341,7 @@ const BudgetManagement = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Total Budget</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">${budgetAnalytics.overview.totalBudget || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{formatCurrency(budgetAnalytics.overview.totalBudget || 0)}</p>
                 </div>
                 <div className="p-3 bg-blue-100 rounded-full">
                   <Target className="h-6 w-6 text-blue-600" />
@@ -180,7 +353,7 @@ const BudgetManagement = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Total Spent</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">${budgetAnalytics.overview.totalSpent || 0}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{formatCurrency(budgetAnalytics.overview.totalSpent || 0)}</p>
                 </div>
                 <div className="p-3 bg-green-100 rounded-full">
                   <DollarSign className="h-6 w-6 text-green-600" />
@@ -192,7 +365,7 @@ const BudgetManagement = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Remaining</p>
-                  <p className="text-3xl font-bold text-green-600 mt-2">${budgetAnalytics.overview.remaining || 0}</p>
+                  <p className="text-3xl font-bold text-green-600 mt-2">{formatCurrency(budgetAnalytics.overview.remaining || 0)}</p>
                 </div>
                 <div className="p-3 bg-purple-100 rounded-full">
                   <Calendar className="h-6 w-6 text-purple-600" />
@@ -204,7 +377,7 @@ const BudgetManagement = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Overspending</p>
-                  <p className="text-3xl font-bold text-red-600 mt-2">${budgetAnalytics.overview.overspending || 0}</p>
+                  <p className="text-3xl font-bold text-red-600 mt-2">{formatCurrency(budgetAnalytics.overview.overspending || 0)}</p>
                 </div>
                 <div className="p-3 bg-red-100 rounded-full">
                   <AlertTriangle className="h-6 w-6 text-red-600" />
@@ -259,8 +432,12 @@ const BudgetManagement = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {budgets.map((budget) => {
-                  const spentPercentage = budget.amount > 0 ? (budget.spent / budget.amount) * 100 : 0;
+                  // Fix data access - use budgetAmount and spentAmount from backend
+                  const budgetAmount = budget.budgetAmount || budget.amount || 0;
+                  const spentAmount = budget.spentAmount || budget.spent || 0;
+                  const spentPercentage = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
                   const isOverspent = spentPercentage > 100;
+                  const remainingAmount = Math.max(0, budgetAmount - spentAmount);
                   
                   return (
                     <div key={budget._id} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:shadow-xl hover:border-blue-300 transition-all duration-200">
@@ -272,20 +449,20 @@ const BudgetManagement = () => {
                       <div className="space-y-4">
                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                           <span className="text-base font-medium text-gray-700">Budget</span>
-                          <span className="text-lg font-bold text-gray-900">${budget.amount}</span>
+                          <span className="text-lg font-bold text-black">{formatCurrency(budgetAmount)}</span>
                         </div>
                         
                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                           <span className="text-base font-medium text-gray-700">Spent</span>
                           <span className={`text-lg font-bold ${isOverspent ? 'text-red-600' : 'text-gray-900'}`}>
-                            ${budget.spent || 0}
+                            {formatCurrency(spentAmount)}
                           </span>
                         </div>
                         
                         <div className="flex justify-between items-center py-2 border-b border-gray-100">
                           <span className="text-base font-medium text-gray-700">Remaining</span>
                           <span className={`text-lg font-bold ${isOverspent ? 'text-red-600' : 'text-green-600'}`}>
-                            ${isOverspent ? 0 : (budget.amount - (budget.spent || 0))}
+                            {formatCurrency(isOverspent ? 0 : remainingAmount)}
                           </span>
                         </div>
 
@@ -293,7 +470,7 @@ const BudgetManagement = () => {
                         <div className="space-y-3 py-2">
                           <div className="flex justify-between items-center">
                             <span className="text-base font-medium text-gray-700">Progress</span>
-                            <span className={`text-lg font-bold ${isOverspent ? 'text-red-600' : 'text-gray-900'}`}>
+                            <span className={`text-lg font-bold ${isOverspent ? 'text-red-600' : 'text-black'}`}>
                               {Math.round(spentPercentage)}%
                             </span>
                           </div>
@@ -308,7 +485,7 @@ const BudgetManagement = () => {
                         {isOverspent && (
                           <div className="flex items-center gap-3 text-sm font-medium text-red-700 bg-red-50 p-3 rounded-lg border border-red-200">
                             <AlertTriangle className="h-5 w-5" />
-                            <span>Budget exceeded by ${(budget.spent - budget.amount).toFixed(2)}</span>
+                            <span>Budget exceeded by {formatCurrency(spentAmount - budgetAmount)}</span>
                           </div>
                         )}
 
@@ -360,8 +537,8 @@ const BudgetManagement = () => {
 
         {/* Budget Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-[100] backdrop-blur-sm overflow-hidden">
+            <div className="w-full max-w-md max-h-[90vh] overflow-visible rounded-xl animate-in fade-in slide-in-from-bottom-4 duration-300 relative">
               <BudgetForm
                 budget={selectedBudget}
                 onSubmit={handleBudgetSaved}

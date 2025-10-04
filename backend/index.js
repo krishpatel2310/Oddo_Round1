@@ -6,7 +6,7 @@ import session from 'express-session';
 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/UserRoutes.js';
-import transactionRoutes from './routes/TransactionRoutes.js';
+import transactionRoutes from './routes/transactionRoutes.js';
 import reminderRoutes from './routes/reminderRoutes.js';
 import budgetRoutes from './routes/budgetRoutes.js';
 
@@ -21,7 +21,10 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.error(err));
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost:3000'],
+  credentials: true
+}));
 app.use(express.json());
 
 app.use(session({
@@ -38,7 +41,12 @@ app.use('/api/budgets', budgetRoutes);
 
 
 app.get('/', (req, res) => {
-  res.send('API is working');
+  res.json({ message: 'API is working', timestamp: new Date().toISOString() });
+});
+
+// Test endpoint to check CORS
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'CORS is working', origin: req.get('origin') });
 });
 
 

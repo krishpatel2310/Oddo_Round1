@@ -43,14 +43,21 @@ function App() {
   // Show a loading indicator while checking for user session
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <p>Loading...</p>
+      <div className="flex h-screen w-full items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-lg font-medium">Loading...</p>
+          <p className="text-sm text-gray-500 mt-2">Checking authentication status</p>
+        </div>
       </div>
     );
   }
 
+
+
   return (
     <Routes>
+
      
       <Route element={<Layout user={user} setUser={setUser} />}>
         <Route 
@@ -86,6 +93,12 @@ function App() {
     
       <Route 
         path="/" 
+        element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} 
+      />
+      
+      {/* Catch-all route for unmatched paths */}
+      <Route 
+        path="*" 
         element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} 
       />
     </Routes>

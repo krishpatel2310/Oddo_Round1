@@ -85,10 +85,13 @@ export const getBudgets = async (req, res) => {
 
     let query = { user: userId };
     
-    if (month && year) {
-      query.month = parseInt(month);
-      query.year = parseInt(year);
-    }
+    // If no month/year specified, get current month's budgets
+    const currentDate = new Date();
+    const currentMonth = month ? parseInt(month) : currentDate.getMonth() + 1;
+    const currentYear = year ? parseInt(year) : currentDate.getFullYear();
+    
+    query.month = currentMonth;
+    query.year = currentYear;
     
     if (period) {
       query.period = period;
@@ -96,8 +99,38 @@ export const getBudgets = async (req, res) => {
 
     const budgets = await Budget.find(query).sort({ category: 1 });
     
-    res.json(budgets);
+    // Update spent amounts for each budget
+    for (let budget of budgets) {
+      const spentAmount = await Transaction.aggregate([
+        {
+          $match: {
+            user: new mongoose.Types.ObjectId(userId),
+            transactionType: 'expense',
+            category: budget.category,
+            month: currentMonth,
+            year: currentYear
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$amount" }
+          }
+        }
+      ]);
+
+      budget.spentAmount = spentAmount.length > 0 ? spentAmount[0].total : 0;
+      budget.spent = budget.spentAmount; // Add spent property for frontend compatibility
+      budget.amount = budget.budgetAmount; // Add amount property for frontend compatibility
+      await budget.save();
+    }
+    
+    res.json({ 
+      budgets,
+      message: "Budgets retrieved successfully"
+    });
   } catch (err) {
+    console.error('Error in getBudgets:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -160,7 +193,8 @@ export const getBudgetAnalytics = async (req, res) => {
     // Calculate totals
     const totalBudget = budgets.reduce((sum, budget) => sum + budget.budgetAmount, 0);
     const totalSpent = budgets.reduce((sum, budget) => sum + budget.spentAmount, 0);
-    const totalRemaining = budgets.reduce((sum, budget) => sum + budget.remainingAmount, 0);
+    const totalRemaining = Math.max(0, totalBudget - totalSpent);
+    const totalOverspending = budgets.reduce((sum, budget) => sum + (budget.isExceeded ? budget.exceededAmount : 0), 0);
     const exceededBudgets = budgets.filter(budget => budget.isExceeded).length;
 
     // Budget vs Spent by category (for charts)
@@ -205,7 +239,7 @@ export const getBudgetAnalytics = async (req, res) => {
     }).map(budget => ({
       category: budget.category,
       message: budget.isExceeded 
-        ? `Budget exceeded for ${budget.category}! Overspent by $${budget.exceededAmount.toFixed(2)}`
+        ? `Budget exceeded for ${budget.category}! Overspent by ₹${budget.exceededAmount.toFixed(2)}`
         : `Warning: ${((budget.spentAmount / budget.budgetAmount) * 100).toFixed(1)}% of ${budget.category} budget used`,
       type: budget.isExceeded ? 'error' : 'warning',
       budgetAmount: budget.budgetAmount,
@@ -217,7 +251,8 @@ export const getBudgetAnalytics = async (req, res) => {
       overview: {
         totalBudget,
         totalSpent,
-        totalRemaining,
+        remaining: totalRemaining,
+        overspending: totalOverspending,
         exceededBudgets,
         budgetUtilization: totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(1) : 0
       },
